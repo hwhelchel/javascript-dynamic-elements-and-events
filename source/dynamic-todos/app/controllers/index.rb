@@ -4,7 +4,14 @@ get '/' do
 end
 
 post '/add_todo' do
-  p params
+  return params.to_json
+end
+
+delete '/delete_todo' do
+  return params.to_json
+end
+
+patch '/complete_todo' do
   return params.to_json
 end
 

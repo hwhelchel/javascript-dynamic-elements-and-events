@@ -2,7 +2,7 @@
   <div class="toolbox">
     <form action="/add_todo" method="post">
       <input name="title" type="text" class="todo" placeholder="Put your todo item here!"/>
-      <input type="submit" value="Add Todo"/>
+      <input class="submit" type="submit" value="Add Todo"/>
       <!-- <button class="add" type="submit">Add Todo</button> -->
     </form>
   </div>
@@ -12,7 +12,7 @@
   </div>
 
   <div id="todo_template" style="display: none;">
-    <div class="todo">
+    <div class="todo todo_item">
       <h2>Todo Name</h2>
       <ul>
         <li><a href="#" class="delete">Delete</a></li>
