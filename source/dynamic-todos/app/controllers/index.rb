@@ -4,6 +4,7 @@ get '/' do
 end
 
 post '/add_todo' do
+  p params
   return params.to_json
 end
 
