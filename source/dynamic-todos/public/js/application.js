@@ -21,6 +21,8 @@ ToDoApp.Binder.prototype = {
     this.bindDragOver(this.targets.parentDragListener);
     this.bindDragEnter(this.targets.parentDragListener);
     this.bindDragLeave(this.targets.parentDragListener);
+    this.bindDrop(this.targets.parentDragListener);
+    this.bindDragEnd(this.targets.parentDragListener);
   },
   bindAdd: function(parent,binder){
     $(parent).on('submit',function(e){
@@ -50,33 +52,43 @@ ToDoApp.Binder.prototype = {
     var sel = this.targets.dragListener;
     var binder = this;
     $(parent).on('dragstart',sel,function(e){
-      this.style.opacity = '0.4';
+      binder.manager.startDrag({element: this, evt: e});
     });
   },
   bindDragOver: function(parent){
     var sel = this.targets.dragListener;
     var binder = this;
     $(parent).on('dragover',sel,function(e){
-      if (e.preventDefault) {
-        e.preventDefault();
-      }
-      e.originalEvent.dataTransfer.dropEffect = "move";
-
-      return false;
+      binder.manager.dragOver({element: this, evt: e});
     });
   },
   bindDragEnter: function(parent){
     var sel = this.targets.dragListener;
     var binder = this;
     $(parent).on('dragenter',sel,function(e){
-      this.classList.add('over');
+      binder.manager.dragEnter({element: this});
     });
   },
   bindDragLeave: function(parent){
     var sel = this.targets.dragListener;
     var binder = this;
     $(parent).on('dragleave',sel,function(e){
-      this.classList.remove('over');
+      binder.manager.dragLeave({element: this});
+    });
+  },
+  bindDrop: function(parent){
+    var sel = this.targets.dragListener;
+    var binder = this;
+    $(parent).on('drop',sel,function(e){
+      binder.manager.drop({element: this, evt: e});
+    });
+  },
+  bindDragEnd: function(parent){
+    var sel = this.targets.dragListener;
+    var binder = this;
+    var list = parent;
+    $(list).on('dragend',sel,function(e){
+      binder.manager.dragEnd({list: list});
     });
   }
 };
@@ -151,7 +163,46 @@ ToDoApp.Manager.prototype = {
         manager.view.update(manager);
       }
     });
+  },
+  startDrag: function(config) {
+    config.element.style.opacity = '0.4';
+
+    dragSrcEl = config.element;
+    config.evt.originalEvent.dataTransfer.effectAllowed = 'move';
+    config.evt.originalEvent.dataTransfer.setData('text/html',config.element.innerHTML);
+  },
+  dragOver: function(config) {
+    if (config.evt.preventDefault) {
+      config.evt.preventDefault();
+    }
+    config.evt.originalEvent.dataTransfer.dropEffect = "move";
+
+    return false;
+  },
+  dragEnter: function(config) {
+    config.element.classList.add('over');
+  },
+  dragLeave: function(config) {
+    config.element.classList.remove('over');
+  },
+  drop: function(config) {
+    if (config.evt.stopPropagation) {
+      config.evt.stopPropagation();
+    }
+
+    if (dragSrcEl != config.element) {
+      dragSrcEl.innerHTML = config.element.innerHTML;
+      config.element.innerHTML = config.evt.originalEvent.dataTransfer.getData('text/html');
+    }
+    return false;
+  },
+  dragEnd: function(config){
+    $.each($(config.list).children(),function(i,todo){
+      todo.classList.remove('over');
+      todo.style.opacity = '1.0';
+    });
   }
+
 };
 
 
