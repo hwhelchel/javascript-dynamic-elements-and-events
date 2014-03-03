@@ -19,7 +19,7 @@ ToDoApp.Binder.prototype = {
     var parent = this.targets.parentDeleteAndCompleteListener;
     this.bindAdd(addParent,action,this);
     this.bindDelete(parent);
-    // bindComplete(parent);
+    this.bindComplete(parent);
   },
   bindAdd: function(parent,action,binder){
     var sel = this.targets.addListener;
@@ -37,17 +37,17 @@ ToDoApp.Binder.prototype = {
       binder.node = e.target.parentElement.parentElement.parentElement;
       binder.manager.deleteTodo($(binder.node).find('h2').text());
     });
+  },
+  bindComplete: function(parent){
+    var sel = this.targets.completeListener;
+    var action = this.action;
+    var binder = this;
+    $(parent).on(action,sel,function(e){
+      e.preventDefault();
+      binder.node = e.target.parentElement.parentElement.parentElement;
+      binder.manager.completeTodo($(binder.node).find('h2').text());
+    });
   }
-  // bindComplete: function(parent){
-  //   var sel = this.targets.completeListener;
-  //   var action = this.action;
-  //   var binder = this;
-  //   $(parent).on(action,sel,function(e){
-  //     e.preventDefault();
-  //     binder.node = e.target;
-  //     manager.completeTodo(binder);
-  //   });
-  // }
 };
 
 ToDoApp.Manager = function(config){
@@ -94,28 +94,33 @@ ToDoApp.Manager.prototype = {
         manager.view.update(manager);
       },
       error: function(resp){
-        manager.data = {error: error + ' Error'};
+        manager.errors.push({error: error + ' Error'});
+        manager.view.update(manager);
+      }
+    });
+  },
+  completeTodo: function(title){
+      var manager = this;
+      var error = 'Complete';
+      var request = { title: title };
+      $.ajax({
+      type: 'PATCH',
+      url:  '/complete_todo',
+      data: request,
+      success: function(resp){
+        for (var i = 0; i < manager.todos.length; i++) {
+          if (JSON.parse(resp).title === manager.todos[i].title) {
+             manager.todos[i].isComplete = true;
+          }
+        }
+        manager.view.update(manager);
+      },
+      error: function(resp){
+        manager.errors.push({error: error + ' Error'});
         manager.view.update(manager);
       }
     });
   }
-  // completeTodo: function(dataSource){
-  //     var manager = this;
-  //     var error = 'Complete';
-  //     $.ajax({
-  //     type: 'PATCH',
-  //     url:  '/complete_todo',
-  //     data: $(dataSource.sel).serialize(),
-  //     success: function(resp){
-  //       manager.data = JSON.parse(resp);
-  //       manager.view.update(manager);
-  //     },
-  //     error: function(resp){
-  //       manager.data = {error: error + ' Error'};
-  //       manager.view.update(manager);
-  //     }
-  //   });
-  // }
 };
 
 
@@ -126,9 +131,8 @@ ToDoApp.View = function(opts){
 ToDoApp.View.prototype = {
   update: function(dataSource){
     this.showToDos(dataSource.todos);
-    if (dataSource.data) {
-      // this.showComplete(dataSource.todos);
-      this.removeDelete(dataSource.data);
+    if (dataSource.todos) {
+      this.showComplete(dataSource.todos);
     }
   },
   showToDos: function(todos){
@@ -143,21 +147,16 @@ ToDoApp.View.prototype = {
       $(item).find('h2').text(todos[i].title);
     });
   },
-  // showComplete: function(todos){
-  //   $(this.opts.todoClass).each(function(i,todo){
-  //     // complete the elements marked
-  //   });
-  // },
-  removeDelete: function(todos){
-    $(this.opts.todoClass).each(function(i,todo){
-      // delete the elements marked
+  showComplete: function(todos){
+    $(this.opts.todoClass).each(function(i,item){
+      if (todos[i].isComplete) {
+        $(item).find('a.complete').replaceWith('Completed');
+      }
     });
   }
 };
 
-
 $(function(){
-
 
 ToDoApp.Binder.targets = {
     parentAddListener: 'form',
@@ -177,58 +176,3 @@ ToDoApp.binder = new ToDoApp.Binder(ToDoApp.Binder.targets,'click',ToDoApp.manag
 ToDoApp.binder.bind();
 });
 
-
-
-
-// $(function() {
-
-//   var todoTemplate = $.trim($('#todo_template').html());
-
-//   ToDoApp.Binder = function() {
-//     var form = 'form';
-//     var formEvent = 'submit';
-//     var list = '.todo_list';
-//     var listItem = $.trim($('#todo_template').html());
-//     var listTitle = '.todo_list .todo h2';
-
-//     $(form).on(formEvent,function(e){
-//       e.preventDefault();
-
-//       $.ajax({
-//       type: 'POST',
-//       url:  '/add_todo',
-//       data: $(form).serialize(),
-//       success: function(resp){
-//         var todo = JSON.parse(resp);
-//         $(list).append(listItem);
-//         $(listTitle).last().text(todo.title);
-//       },
-//       error: function(resp){
-//         console.log('error',resp);
-//       }
-//     });
-//   });
-//     // Bind functions which add, remove, and complete todos to the appropriate
-//     // elements
-//   };
-
-//   //Create functions to add, remove and complete todos
-
-
-
-//   ToDoApp.manager = function(todoName) {
-//     // Creates an jQueryDOMElement from the todoTemplate.
-//     var $todo = $(todoTemplate);
-//     // Modifies it's text to use the passed in todoName.
-//     $todo.find('h2').text(todoName);
-//     // Returns the jQueryDOMElement to be used elsewhere.
-//     return $todo;
-//   };
-
-//   ToDoApp.View = function(){
-
-//   };
-
-
-//   bindEvents();
-// });
