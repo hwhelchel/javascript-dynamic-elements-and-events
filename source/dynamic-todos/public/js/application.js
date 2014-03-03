@@ -3,36 +3,33 @@ var ToDoApp = {};
 ToDoApp.ToDo = function(data){
   this.title = data.title;
   this.isComplete = false;
-  this.isDelete = false;
 };
 
-ToDoApp.Binder = function(targets, action, manager){
+ToDoApp.Binder = function(targets, manager){
   this.targets = targets;
   this.manager = manager;
-  this.action = action;
 };
 
 ToDoApp.Binder.prototype = {
   bind: function(){
-    var action = this.action;
     var addParent = this.targets.parentAddListener;
-    var parent = this.targets.parentDeleteAndCompleteListener;
-    this.bindAdd(addParent,action,this);
-    this.bindDelete(parent);
-    this.bindComplete(parent);
+    var dragParent = this.targets.parentDragListener;
+    this.bindAdd(addParent,this);
+    this.bindDelete(this.targets.parentDeleteAndCompleteListener);
+    this.bindComplete(this.targets.parentDeleteAndCompleteListener);
+    this.bindDragStart(this.targets.parentDragListener);
   },
-  bindAdd: function(parent,action,binder){
+  bindAdd: function(parent,binder){
     var sel = this.targets.addListener;
-    $(parent).on(action,sel,function(e){
+    $(parent).on('click',sel,function(e){
       e.preventDefault();
       binder.manager.addTodo(binder.targets.parentAddListener);
     });
   },
   bindDelete: function(parent){
     var sel = this.targets.deleteListener;
-    var action = this.action;
     var binder = this;
-    $(parent).on(action,sel,function(e){
+    $(parent).on('click',sel,function(e){
       e.preventDefault();
       binder.node = e.target.parentElement.parentElement.parentElement;
       binder.manager.deleteTodo($(binder.node).find('h2').text());
@@ -40,12 +37,18 @@ ToDoApp.Binder.prototype = {
   },
   bindComplete: function(parent){
     var sel = this.targets.completeListener;
-    var action = this.action;
     var binder = this;
-    $(parent).on(action,sel,function(e){
+    $(parent).on('click',sel,function(e){
       e.preventDefault();
       binder.node = e.target.parentElement.parentElement.parentElement;
       binder.manager.completeTodo($(binder.node).find('h2').text());
+    });
+  },
+  bindDragStart: function(parent){
+    var sel = this.targets.dragListener;
+    var binder = this;
+    $(parent).on('dragstart',sel,function(e){
+      e.target.style.opacity = '0.4';
     });
   }
 };
@@ -163,7 +166,9 @@ ToDoApp.Binder.targets = {
     addListener: 'input.submit',
     parentDeleteAndCompleteListener: '.todo_list',
     deleteListener: 'a.delete',
-    completeListener: 'a.complete'
+    completeListener: 'a.complete',
+    parentDragListener: '.todo_list',
+    dragListener: '.todo_item'
   };
 
 ToDoApp.View.opts = {
@@ -171,8 +176,10 @@ ToDoApp.View.opts = {
   todoItem: $.trim($('#todo_template').html()),
   todoClass: '.todo_list .todo_item'
 };
+
 ToDoApp.manager = new ToDoApp.Manager({view: new ToDoApp.View(ToDoApp.View.opts)});
-ToDoApp.binder = new ToDoApp.Binder(ToDoApp.Binder.targets,'click',ToDoApp.manager);
+ToDoApp.binder = new ToDoApp.Binder(ToDoApp.Binder.targets,ToDoApp.manager);
 ToDoApp.binder.bind();
+
 });
 
