@@ -18,10 +18,12 @@ ToDoApp.Binder.prototype = {
     this.bindDelete(this.targets.parentDeleteAndCompleteListener);
     this.bindComplete(this.targets.parentDeleteAndCompleteListener);
     this.bindDragStart(this.targets.parentDragListener);
+    this.bindDragOver(this.targets.parentDragListener);
+    this.bindDragEnter(this.targets.parentDragListener);
+    this.bindDragLeave(this.targets.parentDragListener);
   },
   bindAdd: function(parent,binder){
-    var sel = this.targets.addListener;
-    $(parent).on('click',sel,function(e){
+    $(parent).on('submit',function(e){
       e.preventDefault();
       binder.manager.addTodo(binder.targets.parentAddListener);
     });
@@ -48,7 +50,33 @@ ToDoApp.Binder.prototype = {
     var sel = this.targets.dragListener;
     var binder = this;
     $(parent).on('dragstart',sel,function(e){
-      e.target.style.opacity = '0.4';
+      this.style.opacity = '0.4';
+    });
+  },
+  bindDragOver: function(parent){
+    var sel = this.targets.dragListener;
+    var binder = this;
+    $(parent).on('dragover',sel,function(e){
+      if (e.preventDefault) {
+        e.preventDefault();
+      }
+      e.originalEvent.dataTransfer.dropEffect = "move";
+
+      return false;
+    });
+  },
+  bindDragEnter: function(parent){
+    var sel = this.targets.dragListener;
+    var binder = this;
+    $(parent).on('dragenter',sel,function(e){
+      this.classList.add('over');
+    });
+  },
+  bindDragLeave: function(parent){
+    var sel = this.targets.dragListener;
+    var binder = this;
+    $(parent).on('dragleave',sel,function(e){
+      this.classList.remove('over');
     });
   }
 };
@@ -163,7 +191,6 @@ $(function(){
 
 ToDoApp.Binder.targets = {
     parentAddListener: 'form',
-    addListener: 'input.submit',
     parentDeleteAndCompleteListener: '.todo_list',
     deleteListener: 'a.delete',
     completeListener: 'a.complete',
