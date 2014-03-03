@@ -1,7 +1,8 @@
 var ToDoApp = {};
+
 ToDoApp.ToDo = function(data){
   this.title = data.title;
-  this.isComplete = "__";
+  this.isComplete = false;
   this.isDelete = false;
 };
 
@@ -14,28 +15,29 @@ ToDoApp.Binder = function(targets, action, manager){
 ToDoApp.Binder.prototype = {
   bind: function(){
     var action = this.action;
-    var parent = this.targets.parentListener;
-    this.bindAdd(parent,action,this);
-    // bindDelete(parent);
+    var addParent = this.targets.parentAddListener;
+    var parent = this.targets.parentDeleteAndCompleteListener;
+    this.bindAdd(addParent,action,this);
+    this.bindDelete(parent);
     // bindComplete(parent);
   },
   bindAdd: function(parent,action,binder){
     var sel = this.targets.addListener;
     $(parent).on(action,sel,function(e){
       e.preventDefault();
-      binder.manager.addTodo(binder.targets.parentListener);
+      binder.manager.addTodo(binder.targets.parentAddListener);
+    });
+  },
+  bindDelete: function(parent){
+    var sel = this.targets.deleteListener;
+    var action = this.action;
+    var binder = this;
+    $(parent).on(action,sel,function(e){
+      e.preventDefault();
+      binder.node = e.target.parentElement.parentElement.parentElement;
+      binder.manager.deleteTodo($(binder.node).find('h2').text());
     });
   }
-  // bindDelete: function(parent){
-  //   var sel = this.targets.deleteListener;
-  //   var action = this.action;
-  //   var binder = this;
-  //   $(parent).on(action,sel,function(e){
-  //     e.preventDefault();
-  //     binder.node = e.target;
-  //     manager.deleteTodo(binder);
-  //   });
-  // },
   // bindComplete: function(parent){
   //   var sel = this.targets.completeListener;
   //   var action = this.action;
@@ -55,9 +57,9 @@ ToDoApp.Manager = function(config){
 
 ToDoApp.Manager.prototype = {
   addTodo: function(dataSource){
-      var manager = this;
-      var error = 'Add';
-      $.ajax({
+    var manager = this;
+    var error = 'Add';
+    $.ajax({
       type: 'POST',
       url:  '/add_todo',
       data: $(dataSource).serialize(),
@@ -74,24 +76,29 @@ ToDoApp.Manager.prototype = {
   },
   makeToDos: function(){
     this.todos = [];
+  },
+  deleteTodo: function(title){
+      var manager = this;
+      var error = 'Delete';
+      var request = {title: title };
+      $.ajax({
+      type: 'DELETE',
+      url:  '/delete_todo',
+      data: request,
+      success: function(resp){
+        for (var i = 0; i < manager.todos.length; i++) {
+          if (JSON.parse(resp).title === manager.todos[i].title) {
+             manager.todos.splice(i,1);
+          }
+        }
+        manager.view.update(manager);
+      },
+      error: function(resp){
+        manager.data = {error: error + ' Error'};
+        manager.view.update(manager);
+      }
+    });
   }
-  // deleteTodo: function(dataSource){
-  //     var manager = this;
-  //     var error = 'Delete';
-  //     $.ajax({
-  //     type: 'DELETE',
-  //     url:  '/delete_todo',
-  //     data: $(dataSource.sel).serialize(),
-  //     success: function(resp){
-  //       manager.data = JSON.parse(resp);
-  //       manager.view.update(manager);
-  //     },
-  //     error: function(resp){
-  //       manager.data = {error: error + ' Error'};
-  //       manager.view.update(manager);
-  //     }
-  //   });
-  // },
   // completeTodo: function(dataSource){
   //     var manager = this;
   //     var error = 'Complete';
@@ -119,33 +126,33 @@ ToDoApp.View = function(opts){
 ToDoApp.View.prototype = {
   update: function(dataSource){
     this.showToDos(dataSource.todos);
-    // if (dataSource.todos) {
-    //   this.showComplete(dataSource.todos);
-    //   this.removeDelete(dataSource.todos);
-    // }
+    if (dataSource.data) {
+      // this.showComplete(dataSource.todos);
+      this.removeDelete(dataSource.data);
+    }
   },
   showToDos: function(todos){
     $(this.opts.todoList).empty();
     for (var todo in todos) {
       $(this.opts.todoList).append(this.opts.todoItem);
     }
-    this.updateTitle(todos);
+    this.addTitle(todos);
   },
-  updateTitle: function(todos){
+  addTitle: function(todos){
     $(this.opts.todoClass).each(function(i,item){
       $(item).find('h2').text(todos[i].title);
     });
-  }
+  },
   // showComplete: function(todos){
   //   $(this.opts.todoClass).each(function(i,todo){
   //     // complete the elements marked
   //   });
   // },
-  // removeDelete: function(todos){
-  //   $(this.opts.todoClass).each(function(i,todo){
-  //     // delete the elements marked
-  //   });
-  // }
+  removeDelete: function(todos){
+    $(this.opts.todoClass).each(function(i,todo){
+      // delete the elements marked
+    });
+  }
 };
 
 
@@ -153,8 +160,9 @@ $(function(){
 
 
 ToDoApp.Binder.targets = {
-    parentListener: 'form',
+    parentAddListener: 'form',
     addListener: 'input.submit',
+    parentDeleteAndCompleteListener: '.todo_list',
     deleteListener: 'a.delete',
     completeListener: 'a.complete'
   };
@@ -162,7 +170,7 @@ ToDoApp.Binder.targets = {
 ToDoApp.View.opts = {
   todoList: '.todo_list',
   todoItem: $.trim($('#todo_template').html()),
-  todoClass: '.todo_item'
+  todoClass: '.todo_list .todo_item'
 };
 ToDoApp.manager = new ToDoApp.Manager({view: new ToDoApp.View(ToDoApp.View.opts)});
 ToDoApp.binder = new ToDoApp.Binder(ToDoApp.Binder.targets,'click',ToDoApp.manager);
